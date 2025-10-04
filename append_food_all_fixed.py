@@ -1,33 +1,56 @@
 # -*- coding: utf-8 -*-
+import os
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 
-SERVICE_ACCOUNT_FILE = "gpt-body-parameters-ee1a7fa0b8b5.json"
-SHEET_ID = "1iWi6m3o2qatEyDTNXKqkqq_xQ3DacE_E7_NR162GNeI"
+# ----- Налаштування -----
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
 
-scope = ["https://www.googleapis.com/auth/spreadsheets",
-         "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
-gc = gspread.authorize(creds)
-sh = gc.open_by_key(SHEET_ID)
+# Можна задати через Secrets → ACTIONS:
+#  - GOOGLE_APPLICATION_CREDENTIALS створюється у workflow (шлях до тимчасового json)
+#  - FOOD_SHEET_ID — id таблиці (опційно; якщо не задано, беремо з константи нижче)
+DEFAULT_SHEET_ID = "1iWi6m3o2qatEyDTNXKqkqq_xQ3DacE_E7_NR162GNeI"
+SHEET_ID = os.environ.get("FOOD_SHEET_ID", DEFAULT_SHEET_ID)
 
-HEADERS = ["Дата","Час","Прийом","Страва / Продукт","Кількість","Ккал",
-           "Білки (г)","Жири (г)","Вуглеводи (г)","Клітковина (г)","Позначка","Нотатка"]
+HEADERS = [
+    "Дата","Час","Прийом","Страва / Продукт","Кількість","Ккал",
+    "Білки (г)","Жири (г)","Вуглеводи (г)","Клітковина (г)","Позначка","Нотатка"
+]
 
-def ensure_food_sheet():
+def get_gspread_client():
+    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if not cred_path or not os.path.exists(cred_path):
+        raise FileNotFoundError(
+            f"GOOGLE_APPLICATION_CREDENTIALS not set or file missing: {cred_path}"
+        )
+    creds = Credentials.from_service_account_file(cred_path, scopes=SCOPES)
+    return gspread.authorize(creds)
+
+def open_sheet():
+    gc = get_gspread_client()
+    return gc.open_by_key(SHEET_ID)
+
+def ensure_food_sheet(sh):
     try:
         ws = sh.worksheet("Харчування")
-        if ws.row_count == 1 and not any(ws.row_values(1)):
+        # Якщо перший рядок порожній — ставимо заголовки
+        first_row = ws.row_values(1)
+        if not first_row:
             ws.update([HEADERS], value_input_option="USER_ENTERED")
     except gspread.exceptions.WorksheetNotFound:
-        ws = sh.add_worksheet(title="Харчування", rows=400, cols=len(HEADERS))
+        ws = sh.add_worksheet(title="Харчування", rows=500, cols=len(HEADERS))
         ws.update([HEADERS], value_input_option="USER_ENTERED")
     return ws
 
 def append_food_rows(rows):
-    ws = ensure_food_sheet()
+    sh = open_sheet()
+    ws = ensure_food_sheet(sh)
     ws.append_rows(rows, value_input_option="USER_ENTERED")
 
+# --- Приклад даних (можеш прибрати/замінити на твою генерацію) ---
 rows = [
     # 21.09
     ["2025-09-21","07:30","Сніданок","Сніданок (деталі не вказані)","-", "", "", "", "", "", "потребує уточнення","Перед сніданком — вода з лимоном"],
@@ -36,7 +59,6 @@ rows = [
     ["2025-09-21","19:00","Вечеря","Овочі мікс (перець, помідор, салат)","≈200 г", 60, 2, 0.5, 12, 3, "оцінка",""],
     ["2025-09-21","19:00","Вечеря","Оливкова олія","1 ст. л. (15 мл)", 120, 0, 14, 0, 0, "оцінка","у соусі"],
     ["2025-09-21","19:00","Вечеря","Кунжут","1 ч. л. (5 г)", 29, 1, 2.6, 1.3, 1.1, "оцінка",""],
-
     # 04.10
     ["2025-10-04","13:30","Обід","Гречка варена","≈250 г", 155, 5.7, 1.4, 33, 4.5, "оцінка","з цибулею, часником, овочами"],
     ["2025-10-04","13:30","Обід","Овочі (цибуля, перець, морква)","≈150 г", 45, 1.5, 0.2, 10, 2.0, "оцінка",""],

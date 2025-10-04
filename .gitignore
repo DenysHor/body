@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+build/
+dist/
+.eggs/
+*.manifest
+*.spec
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter / IPython
+.ipynb_checkpoints
+*.ipynb
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.DS_Store
+
+# IDE and OS files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+Thumbs.db
+
+# Google / API credentials
+*gpt-body-parameters-*.json
+token_*.json
+credentials.json
+client_secret*.json
+
+# Cache
+.cache/
+.pytest_cache/
+__pycache__/
+*.sqlite3
+
+# Data exports
+*.csv
+*.xlsx
+*.ods
+*.pdf
+*.docx
+
+# Local folders
+/mnt/
+temp/
+local_data/
+test_results/

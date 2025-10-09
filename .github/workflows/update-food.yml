@@ -32,7 +32,7 @@ jobs:
 
       - name: Run update script
         env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_SHEET_ID: ${{ secrets.SHEET_ID }}
           FOOD_SHEET_NAME: ${{ secrets.FOOD_SHEET_NAME }}
         run: python append_food_all_fixed.py
 

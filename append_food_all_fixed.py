@@ -48,7 +48,7 @@ def ensure_food_sheet(sh):
 
 def load_existing_keys(ws):
     """Зчитує унікальні ключі (Дата, Прийом, Страва / Продукт) щоб уникати дублікатів"""
-    records = ws.get_all_records(numeric_value_handling='RAW')
+    records = ws.get_all_records()
     keys = {(r["Дата"], r["Прийом"], r["Страва / Продукт"]) for r in records if r.get("Дата")}
     return keys
 

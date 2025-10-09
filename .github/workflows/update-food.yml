@@ -3,7 +3,7 @@ name: Update food table
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 20 * * *"     # щодня о 20:00 UTC
+    - cron: "0 20 * * *"   # щодня о 20:00 UTC
 
 permissions:
   contents: write
@@ -11,6 +11,11 @@ permissions:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+
+    # <-- секрети стають доступні УСІМ крокам
+    env:
+      GOOGLE_SHEET_ID:   ${{ secrets.GOOGLE_SHEET_ID }}
+      FOOD_SHEET_NAME:   ${{ secrets.FOOD_SHEET_NAME }}
 
     steps:
       - name: Checkout repo
@@ -22,20 +27,17 @@ jobs:
           python-version: "3.11"
 
       - name: Create Google credentials file from secret
+        env:
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
         run: |
           echo "$GCP_SERVICE_ACCOUNT_JSON" > "${{ github.workspace }}/gcp-creds.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=${{ github.workspace }}/gcp-creds.json" >> $GITHUB_ENV
-        env:
-          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
 
-      # (не друкуємо значення; лише перевірка наявності)
-      - name: Debug env (presence only)
+      # Лише перевіряємо, що ЗМІННІ Є (значення не друкуємо)
+      - name: Debug env presence
         run: |
           echo "GOOGLE_SHEET_ID set? => ${GOOGLE_SHEET_ID:+yes}"
           echo "FOOD_SHEET_NAME set? => ${FOOD_SHEET_NAME:+yes}"
-        env:
-          GOOGLE_SHEET_ID:   ${{ secrets.GOOGLE_SHEET_ID }}
-          FOOD_SHEET_NAME:   ${{ secrets.FOOD_SHEET_NAME }}
 
       - name: Install dependencies
         run: |
@@ -44,9 +46,6 @@ jobs:
 
       - name: Run update script
         run: python append_food_all_fixed.py
-        env:
-          GOOGLE_SHEET_ID:   ${{ secrets.GOOGLE_SHEET_ID }}
-          FOOD_SHEET_NAME:   ${{ secrets.FOOD_SHEET_NAME }}
 
       - name: Commit & push changes if any
         run: |

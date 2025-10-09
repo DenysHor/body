@@ -11,23 +11,18 @@ permissions:
 jobs:
   run-script:
     runs-on: ubuntu-latest
-    env:
-      GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Create Google credentials file from secret
+        env:
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
         run: |
-          echo "$GCP_SERVICE_ACCOUNT_JSON" > "${{ github.workspace }}/gcp-creds.json"
+          echo "$GCP_SERVICE_ACCOUNT_JSON" > ${{ github.workspace }}/gcp-creds.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=${{ github.workspace }}/gcp-creds.json" >> $GITHUB_ENV
 
       - name: Install dependencies
@@ -36,13 +31,15 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run update script
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          FOOD_SHEET_NAME: ${{ secrets.FOOD_SHEET_NAME }}
         run: python append_food_all_fixed.py
 
       - name: Commit & push changes if any
-        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --quiet && echo "No changes" || git commit -m "Auto-update food table"
+          git diff --quiet || git commit -m "Auto-update food table"
           git push
